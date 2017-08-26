@@ -136,6 +136,36 @@ func (aria *AriaClient) TellActive(keys ...string) (list DownloadStatusList, err
 
 //
 
+type BtPeer struct {
+	PeerId        string `json:"peerId"`
+	Ip            string `json:"ip"`
+	Port          string `json:"port"`
+	Bitfield      string `json:"bitfield"`
+	AmChoking     bool `json:"amChoking,string"`
+	PeerChoking   bool `json:"peerChoking,string"`
+	DownloadSpeed uint64 `json:"downloadSpeed,string"`
+	UploadSpeed   uint64 `json:"uploadSpeed,string"`
+	Seeder        bool `json:"seeder,string"`
+}
+
+func (aria *AriaClient) GetPeers(gid string) (peers []BtPeer, err error) {
+	resp, err := aria.c.Call("aria2.getPeers", gid)
+
+	if err != nil {
+		return
+	}
+
+	if resp.Error != nil {
+		err = fmt.Errorf(resp.Error.Message)
+		return
+	}
+
+	err = resp.GetObject(&peers)
+	return
+}
+
+//
+
 type DownloadId string
 
 func (aria *AriaClient) AddUri(uri string) (downloadId DownloadId, err error) {
@@ -192,5 +222,21 @@ func (aria *AriaClient) ListNotifications() (notifications []string, err error) 
 	}
 
 	err = resp.GetObject(&notifications)
+	return
+}
+
+func (aria *AriaClient) GetGlobalOption() (options map[string]string, err error) {
+	resp, err := aria.c.Call("aria2.getGlobalOption")
+
+	if err != nil {
+		return
+	}
+
+	if resp.Error != nil {
+		err = fmt.Errorf(resp.Error.Message)
+		return
+	}
+
+	err = resp.GetObject(&options)
 	return
 }

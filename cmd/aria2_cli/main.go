@@ -7,6 +7,8 @@ import (
 	"aria2_api"
 	"log"
 	"math"
+	"encoding/json"
+	"strings"
 )
 
 const endpointUrl = "http://127.0.0.1:6801/jsonrpc"
@@ -86,11 +88,74 @@ func main() {
 		Use:   "config",
 		Short: "Get/set global configuration",
 		Run: func(cmd *cobra.Command, args [] string) {
+			client := aria2_api.NewAriaClient(endpointUrl)
+
+			config, err := client.GetGlobalOption()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			jsonConfig, err := json.MarshalIndent(config, "", "  ")
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Printf("%s\n", jsonConfig)
+		},
+	}
+
+	var peersCmd = &cobra.Command{
+		Use: "peers [gid]",
+		Short: "Get peer information for a torrent",
+		Run: func(cmd *cobra.Command, args [] string) {
+			client := aria2_api.NewAriaClient(endpointUrl)
+
+			printPeersForDownload := func(gid string) {
+				peers, err := client.GetPeers(gid)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				if len(peers) > 0 {
+					fmt.Println(gid)
+					fmt.Println(strings.Repeat("-", 37))
+
+					for _, peer := range(peers) {
+						fmt.Printf("%15s:%5s  %6s  %6s\n",
+							peer.Ip,
+							peer.Port,
+							humanizeBytes(peer.DownloadSpeed),
+							humanizeBytes(peer.UploadSpeed))
+					}
+
+					fmt.Printf("\n")
+				}
+			}
+
+			var gids []string
+
+			if len(args) == 0 {
+				downloads, err := client.TellActive("gid")
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				for _, dwn := range downloads {
+					gids = append(gids, dwn.Gid)
+				}
+			} else {
+				gids = args
+			}
+
+			for _, gid := range gids  {
+				printPeersForDownload(gid)
+			}
 		},
 	}
 
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(configCmd)
+	rootCmd.AddCommand(peersCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
