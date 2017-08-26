@@ -17,6 +17,21 @@ func NewAriaClient(endpoint string) *AriaClient {
 
 //
 
+var defaultStatusKeys = [...]string{
+	"gid",
+	"status",
+	"totalLength",
+	"completedLength",
+	"uploadLength",
+	"downloadSpeed",
+	"uploadSpeed",
+	"infoHash",
+	"numSeeders",
+	"connections",
+	"bittorrent",}
+
+//
+
 type GlobalStat struct {
 	DownloadSpeed string `json:"downloadSpeed"`
 	UploadSpeed   string `json:"uploadSpeed"`
@@ -52,17 +67,30 @@ type DownloadFile struct {
 	Selected        string `json:"selected"`
 }
 
+type TorrentInfo struct {
+	Name string `json:"name"`
+}
+
+type TorrentStatus struct {
+	//AnnounceList []string `json:"announceList"`
+	Comment      string `json:"comment"`
+	CreationDate uint64 `json:"creationDate"`
+	Mode         string `json:"mode"`
+	Info         TorrentInfo `json:"info"`
+}
+
 type DownloadStatus struct {
-	Gid             string `json:"string"`
+	Gid             string `json:"gid"`
 	Status          string `json:"status"`
-	TotalLength     string `json:"totalLength"`
-	CompletedLength string `json:"completedLength"`
-	UploadedLength  string `json:"uploadedLength"`
-	DownloadSpeed   string `json:"downloadSpeed"`
-	UploadSpeed     string `json:"uploadSpeed"`
+	TotalLength     uint64 `json:"totalLength,string"`
+	CompletedLength uint64 `json:"completedLength,string"`
+	UploadedLength  uint64 `json:"uploadedLength,string"`
+	DownloadSpeed   uint64 `json:"downloadSpeed,string"`
+	UploadSpeed     uint64 `json:"uploadSpeed,string"`
 	InfoHash        string `json:"infoHash"`
 	Dir             string `json:"dir"`
 	Files           []DownloadFile `json:"files"`
+	Bittorrent      *TorrentStatus `json:"bittorrent"`
 }
 
 func (aria *AriaClient) TellStatus(downloadId DownloadId) (status DownloadStatus, err error) {
@@ -78,6 +106,31 @@ func (aria *AriaClient) TellStatus(downloadId DownloadId) (status DownloadStatus
 	}
 
 	err = resp.GetObject(&status)
+	return
+}
+
+//
+
+type DownloadStatusList []DownloadStatus
+
+func (aria *AriaClient) TellActive(keys ...string) (list DownloadStatusList, err error) {
+	// Default response keys
+	if len(keys) == 0 {
+		keys = defaultStatusKeys[:]
+	}
+
+	resp, err := aria.c.Call("aria2.tellActive", keys)
+
+	if err != nil {
+		return
+	}
+
+	if resp.Error != nil {
+		err = fmt.Errorf(resp.Error.Message)
+		return
+	}
+
+	err = resp.GetObject(&list)
 	return
 }
 
@@ -105,5 +158,39 @@ func (aria *AriaClient) AddUri(uri string) (downloadId DownloadId, err error) {
 	}
 
 	downloadId = DownloadId(s)
+	return
+}
+
+//
+
+func (aria *AriaClient) ListMethods() (methods []string, err error) {
+	resp, err := aria.c.Call("aria2.listMethods")
+
+	if err != nil {
+		return
+	}
+
+	if resp.Error != nil {
+		err = fmt.Errorf(resp.Error.Message)
+		return
+	}
+
+	err = resp.GetObject(&methods)
+	return
+}
+
+func (aria *AriaClient) ListNotifications() (notifications []string, err error) {
+	resp, err := aria.c.Call("aria2.listNotifications")
+
+	if err != nil {
+		return
+	}
+
+	if resp.Error != nil {
+		err = fmt.Errorf(resp.Error.Message)
+		return
+	}
+
+	err = resp.GetObject(&notifications)
 	return
 }
