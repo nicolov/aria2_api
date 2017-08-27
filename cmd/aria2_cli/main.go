@@ -174,20 +174,32 @@ func main() {
 		},
 	}
 
-	//var addCmd := &cobra.Command{
-	//	Use: "add [url]",
-	//	Short: "Add URLs to the download queue",
-	//	Args: cobra.MinimumNArgs(1),
-	//	Run: func(cmd *cobra.Command, args [] string) {
-	//		client := aria2_api.NewAriaClient(endpointUrl)
-	//
-	//
-	//	},
-	//}
+	var addCmd = &cobra.Command{
+		Use: "add [url]",
+		Short: "Add URLs to the download queue",
+		Args: cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args [] string) {
+			client := aria2_api.NewAriaClient(endpointUrl)
+
+			var gids []string
+
+			for _, uri := range(args) {
+				gid, err := client.AddUri(uri)
+				if err != nil {
+					log.Printf("%s: %v", uri, err)
+				} else {
+					gids = append(gids, gid)
+				}
+			}
+
+			fmt.Println(gids)
+		},
+	}
 
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(peersCmd)
+	rootCmd.AddCommand(addCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

@@ -34,7 +34,7 @@ var defaultStatusKeys = [...]string{
 
 func (aria *AriaClient) makeCall(methodName string, params ...interface{}) (resp *jsonrpc.RPCResponse, err error) {
 	fullMethodName := "aria2." + methodName
-	resp, err = aria.c.Call(fullMethodName, params)
+	resp, err = aria.c.Call(fullMethodName, params...)
 
 	if err != nil {
 		return
@@ -104,8 +104,8 @@ type DownloadStatus struct {
 	Bittorrent      *TorrentStatus `json:"bittorrent"`
 }
 
-func (aria *AriaClient) TellStatus(downloadId DownloadId) (status DownloadStatus, err error) {
-	resp, err := aria.makeCall("tellStatus", string(downloadId))
+func (aria *AriaClient) TellStatus(downloadId string) (status DownloadStatus, err error) {
+	resp, err := aria.makeCall("tellStatus", downloadId)
 	if err != nil {
 		return
 	}
@@ -159,10 +159,11 @@ func (aria *AriaClient) GetPeers(gid string) (peers []BtPeer, err error) {
 
 //
 
-type DownloadId string
-
-func (aria *AriaClient) AddUri(uri string) (downloadId DownloadId, err error) {
-	uris := [1]string{uri}
+func (aria *AriaClient) AddUri(uri string) (downloadId string, err error) {
+	// aria2 expects an array of uris pointing to the same resource.
+	// This is confusing and could cause corruption, so this
+	// function takes in a single uri.
+	uris := [...]string{uri}
 
 	resp, err := aria.makeCall("addUri", uris)
 
@@ -170,12 +171,7 @@ func (aria *AriaClient) AddUri(uri string) (downloadId DownloadId, err error) {
 		return
 	}
 
-	s, err := resp.GetString()
-	if err != nil {
-		return
-	}
-
-	downloadId = DownloadId(s)
+	downloadId, err = resp.GetString()
 	return
 }
 
