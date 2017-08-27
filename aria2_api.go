@@ -32,6 +32,23 @@ var defaultStatusKeys = [...]string{
 
 //
 
+func (aria *AriaClient) makeCall(methodName string, params ...interface{}) (resp *jsonrpc.RPCResponse, err error) {
+	fullMethodName := "aria2." + methodName
+	resp, err = aria.c.Call(fullMethodName, params)
+
+	if err != nil {
+		return
+	}
+
+	if resp.Error != nil {
+		err = fmt.Errorf("aria2: %s", resp.Error.Message)
+	}
+
+	return
+}
+
+//
+
 type GlobalStat struct {
 	DownloadSpeed string `json:"downloadSpeed"`
 	UploadSpeed   string `json:"uploadSpeed"`
@@ -41,14 +58,9 @@ type GlobalStat struct {
 }
 
 func (aria *AriaClient) GetGlobalStat() (stat GlobalStat, err error) {
-	resp, err := aria.c.Call("aria2.getGlobalStat")
+	resp, err := aria.makeCall("getGlobalStat")
 
 	if err != nil {
-		return
-	}
-
-	if resp.Error != nil {
-		err = fmt.Errorf(resp.Error.Message)
 		return
 	}
 
@@ -93,14 +105,8 @@ type DownloadStatus struct {
 }
 
 func (aria *AriaClient) TellStatus(downloadId DownloadId) (status DownloadStatus, err error) {
-	resp, err := aria.c.Call("aria2.tellStatus", string(downloadId))
-
+	resp, err := aria.makeCall("tellStatus", string(downloadId))
 	if err != nil {
-		return
-	}
-
-	if resp.Error != nil {
-		err = fmt.Errorf(resp.Error.Message)
 		return
 	}
 
@@ -118,14 +124,8 @@ func (aria *AriaClient) TellActive(keys ...string) (list DownloadStatusList, err
 		keys = defaultStatusKeys[:]
 	}
 
-	resp, err := aria.c.Call("aria2.tellActive", keys)
-
+	resp, err := aria.makeCall("tellActive", keys)
 	if err != nil {
-		return
-	}
-
-	if resp.Error != nil {
-		err = fmt.Errorf(resp.Error.Message)
 		return
 	}
 
@@ -148,14 +148,8 @@ type BtPeer struct {
 }
 
 func (aria *AriaClient) GetPeers(gid string) (peers []BtPeer, err error) {
-	resp, err := aria.c.Call("aria2.getPeers", gid)
-
+	resp, err := aria.makeCall("getPeers", gid)
 	if err != nil {
-		return
-	}
-
-	if resp.Error != nil {
-		err = fmt.Errorf(resp.Error.Message)
 		return
 	}
 
@@ -170,14 +164,9 @@ type DownloadId string
 func (aria *AriaClient) AddUri(uri string) (downloadId DownloadId, err error) {
 	uris := [1]string{uri}
 
-	resp, err := aria.c.Call("aria2.addUri", uris)
+	resp, err := aria.makeCall("addUri", uris)
 
 	if err != nil {
-		return
-	}
-
-	if resp.Error != nil {
-		err = fmt.Errorf(resp.Error.Message)
 		return
 	}
 
@@ -193,14 +182,8 @@ func (aria *AriaClient) AddUri(uri string) (downloadId DownloadId, err error) {
 //
 
 func (aria *AriaClient) ListMethods() (methods []string, err error) {
-	resp, err := aria.c.Call("aria2.listMethods")
-
+	resp, err := aria.makeCall("listMethods")
 	if err != nil {
-		return
-	}
-
-	if resp.Error != nil {
-		err = fmt.Errorf(resp.Error.Message)
 		return
 	}
 
@@ -209,14 +192,8 @@ func (aria *AriaClient) ListMethods() (methods []string, err error) {
 }
 
 func (aria *AriaClient) ListNotifications() (notifications []string, err error) {
-	resp, err := aria.c.Call("aria2.listNotifications")
-
+	resp, err := aria.makeCall("listNotifications")
 	if err != nil {
-		return
-	}
-
-	if resp.Error != nil {
-		err = fmt.Errorf(resp.Error.Message)
 		return
 	}
 
@@ -225,14 +202,8 @@ func (aria *AriaClient) ListNotifications() (notifications []string, err error) 
 }
 
 func (aria *AriaClient) GetGlobalOption() (options map[string]string, err error) {
-	resp, err := aria.c.Call("aria2.getGlobalOption")
-
+	resp, err := aria.makeCall("getGlobalOption")
 	if err != nil {
-		return
-	}
-
-	if resp.Error != nil {
-		err = fmt.Errorf(resp.Error.Message)
 		return
 	}
 
@@ -241,14 +212,8 @@ func (aria *AriaClient) GetGlobalOption() (options map[string]string, err error)
 }
 
 func (aria *AriaClient) ChangeGlobalOption(options map[string]string) (err error) {
-	resp, err := aria.c.Call("aria2.changeGlobalOption", options)
-
+	resp, err := aria.makeCall("changeGlobalOption", options)
 	if err != nil {
-		return
-	}
-
-	if resp.Error != nil {
-		err = fmt.Errorf(resp.Error.Message)
 		return
 	}
 

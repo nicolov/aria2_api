@@ -89,7 +89,6 @@ func main() {
 		Use:   "config",
 		Short: "Get/set global configuration",
 		Args: func(cmd *cobra.Command, args [] string) error {
-			print("args", len(args))
 			if !(len(args) == 0 || len(args) == 2) {
 				return errors.New("config requires either 0, or 2 arguments")
 			}
