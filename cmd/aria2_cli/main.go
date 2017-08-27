@@ -9,6 +9,7 @@ import (
 	"math"
 	"encoding/json"
 	"strings"
+	"errors"
 )
 
 const endpointUrl = "http://127.0.0.1:6801/jsonrpc"
@@ -87,20 +88,41 @@ func main() {
 	var configCmd = &cobra.Command{
 		Use:   "config",
 		Short: "Get/set global configuration",
+		Args: func(cmd *cobra.Command, args [] string) error {
+			print("args", len(args))
+			if !(len(args) == 0 || len(args) == 2) {
+				return errors.New("config requires either 0, or 2 arguments")
+			}
+			return nil
+		},
 		Run: func(cmd *cobra.Command, args [] string) {
 			client := aria2_api.NewAriaClient(endpointUrl)
 
-			config, err := client.GetGlobalOption()
-			if err != nil {
-				log.Fatal(err)
-			}
+			if len(args) == 0 {
+				// Print configuration
+				config, err := client.GetGlobalOption()
+				if err != nil {
+					log.Fatal(err)
+				}
 
-			jsonConfig, err := json.MarshalIndent(config, "", "  ")
-			if err != nil {
-				log.Fatal(err)
-			}
+				jsonConfig, err := json.MarshalIndent(config, "", "  ")
+				if err != nil {
+					log.Fatal(err)
+				}
 
-			fmt.Printf("%s\n", jsonConfig)
+				fmt.Printf("%s\n", jsonConfig)
+			} else {
+				// Set configuration
+				configChange := map[string]string{
+					args[0]: args[1],
+				}
+
+				err := client.ChangeGlobalOption(configChange)
+
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
 		},
 	}
 
@@ -152,6 +174,17 @@ func main() {
 			}
 		},
 	}
+
+	//var addCmd := &cobra.Command{
+	//	Use: "add [url]",
+	//	Short: "Add URLs to the download queue",
+	//	Args: cobra.MinimumNArgs(1),
+	//	Run: func(cmd *cobra.Command, args [] string) {
+	//		client := aria2_api.NewAriaClient(endpointUrl)
+	//
+	//
+	//	},
+	//}
 
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(configCmd)

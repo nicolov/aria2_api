@@ -44,7 +44,6 @@ func (aria *AriaClient) GetGlobalStat() (stat GlobalStat, err error) {
 	resp, err := aria.c.Call("aria2.getGlobalStat")
 
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 
@@ -238,5 +237,30 @@ func (aria *AriaClient) GetGlobalOption() (options map[string]string, err error)
 	}
 
 	err = resp.GetObject(&options)
+	return
+}
+
+func (aria *AriaClient) ChangeGlobalOption(options map[string]string) (err error) {
+	resp, err := aria.c.Call("aria2.changeGlobalOption", options)
+
+	if err != nil {
+		return
+	}
+
+	if resp.Error != nil {
+		err = fmt.Errorf(resp.Error.Message)
+		return
+	}
+
+	s, err := resp.GetString()
+
+	if err != nil {
+		return
+	}
+
+	if s != "OK" {
+		err = fmt.Errorf(s)
+	}
+
 	return
 }
