@@ -4,15 +4,13 @@ import (
 	"github.com/spf13/cobra"
 	"fmt"
 	"os"
-	"aria2_api"
+	"github.com/nicolov/aria2_api"
 	"log"
 	"math"
 	"encoding/json"
 	"strings"
 	"errors"
 )
-
-const endpointUrl = "http://127.0.0.1:6801/jsonrpc"
 
 func logn(n, b float64) float64 {
 	return math.Log(n) / math.Log(b)
@@ -42,6 +40,12 @@ func main() {
 	var rootCmd = &cobra.Command{
 		Use: "aria2_cli",
 	}
+
+	var endpointUrl string
+	rootCmd.PersistentFlags().StringVarP(&endpointUrl,
+		"endpoint_url", "u",
+		"http://127.0.0.1:6800/jsonrpc",
+	"Endpoint url")
 
 	var listCmd = &cobra.Command{
 		Use:   "list",
