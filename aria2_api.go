@@ -175,6 +175,28 @@ func (aria *AriaClient) AddUri(uri string) (downloadId string, err error) {
 	return
 }
 
+func (aria *AriaClient) AddTorrent(torrentPath string) (downloadId string, err error) {
+	resp, err := aria.makeCall("addTorrent", torrentPath)
+
+	if err != nil {
+		return
+	}
+
+	downloadId, err = resp.GetString()
+	return
+}
+
+//
+
+func (aria * AriaClient) Pause(gid string) (downloadId string, err error) {
+	resp, err := aria.makeCall("pause", gid)
+	if err != nil {
+		return
+	}
+	downloadId, err = resp.GetString()
+	return
+}
+
 //
 
 func (aria *AriaClient) ListMethods() (methods []string, err error) {
