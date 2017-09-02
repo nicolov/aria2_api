@@ -171,14 +171,16 @@ func main() {
 
 				if len(peers) > 0 {
 					fmt.Println(gid)
-					fmt.Println(strings.Repeat("-", 37))
+					fmt.Println(strings.Repeat("-", 44))
 
 					for _, peer := range (peers) {
-						fmt.Printf("%15s:%5s  %6s  %6s\n",
+						complPieces, totalPieces := peer.PiecesCompletedTotal()
+						fmt.Printf("%15s:%5s  %6s  %6s  %.1f%%\n",
 							peer.Ip,
 							peer.Port,
 							humanizeBytes(peer.DownloadSpeed),
-							humanizeBytes(peer.UploadSpeed))
+							humanizeBytes(peer.UploadSpeed),
+							100 * float64(complPieces) / float64(totalPieces))
 					}
 
 					fmt.Printf("\n")
