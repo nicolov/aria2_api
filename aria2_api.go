@@ -118,8 +118,11 @@ func (aria *AriaClient) TellStatus(downloadId string) (status DownloadStatus, er
 
 type DownloadStatusList []DownloadStatus
 
-func (aria *AriaClient) TellActive(keys ...string) (list DownloadStatusList, err error) {
-	// Default response keys
+// Helper function for functions that return a list of downloads
+func (aria * AriaClient) tellList(ariaCmd string, keys []string)(list DownloadStatusList,
+	err error) {
+
+	// Use the default response keys if none were passed in
 	if len(keys) == 0 {
 		keys = defaultStatusKeys[:]
 	}
@@ -130,6 +133,21 @@ func (aria *AriaClient) TellActive(keys ...string) (list DownloadStatusList, err
 	}
 
 	err = resp.GetObject(&list)
+	return
+}
+
+func (aria *AriaClient) TellActive(keys ...string) (list DownloadStatusList, err error) {
+	list, err = aria.tellList("tellActive", keys)
+	return
+}
+
+func (aria *AriaClient) TellWaiting(keys ...string) (list DownloadStatusList, err error) {
+	list, err = aria.tellList("tellWaiting", keys)
+	return
+}
+
+func (aria *AriaClient) TellStopped(keys ...string) (list DownloadStatusList, err error) {
+	list, err = aria.tellList("tellStopped", keys)
 	return
 }
 

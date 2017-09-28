@@ -66,6 +66,7 @@ func TestMain(m *testing.M) {
 	os.Exit(res)
 }
 
+// Test that we can successfully download a single file
 func TestDownload(t *testing.T) {
 	require := require.New(t)
 
@@ -100,4 +101,11 @@ func TestDownload(t *testing.T) {
 
 	// Clean up
 	_ = os.Remove(downloadPath)
+}
+
+// Test queue
+func TestQueue(t *testing.T) {
+	//r := require.New(t)
+	//client := NewAriaClient(endpointUrl)
+
 }
