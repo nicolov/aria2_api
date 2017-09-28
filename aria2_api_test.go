@@ -45,11 +45,13 @@ func testWithAriaDaemon(t *testing.T, f func(*testing.T)) {
 	}
 
 	// HTTP server for test files
-	http.HandleFunc("/test_file", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/test_file", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Hello world")
 	})
+
 	go func() {
-		http.ListenAndServe(":7575", nil)
+		http.ListenAndServe(":7575", mux)
 	}()
 
 	// Actually run the test now
@@ -99,13 +101,15 @@ func TestDownload(t *testing.T) {
 	})
 }
 
-//// Test queue
-//func TestQueue(t *testing.T) {
-//	r := require.New(t)
-//	client := NewAriaClient(endpointUrl)
-//
-//	// No download in the queue
-//	stats, _ := client.GetGlobalStat()
-//	r.Equal(stats.NumActive, "0")
-//	r.Equal(stats.NumStopped, "0")
-//}
+// Test queue
+func TestQueue(t *testing.T) {
+	testWithAriaDaemon(t, func(t *testing.T) {
+		r := require.New(t)
+		client := NewAriaClient(endpointUrl)
+
+		// No download in the queue
+		stats, _ := client.GetGlobalStat()
+		r.Equal(stats.NumActive, "0")
+		r.Equal(stats.NumStopped, "0")
+	})
+}
