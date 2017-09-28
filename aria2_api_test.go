@@ -14,11 +14,14 @@ import (
 
 const endpointUrl = "http://localhost:6800/jsonrpc"
 
+const cfgDefaultMaxConcurrentDownloads = "7"
+
 // Wrap aria2 daemon setup/teardown code
 func testWithAriaDaemon(t *testing.T, f func(*testing.T)) {
 	ariaCmd := exec.Command("aria2c",
 		"--enable-rpc",
-		"--rpc-listen-all")
+		"--rpc-listen-all",
+		"--max-concurrent-downloads=" + cfgDefaultMaxConcurrentDownloads)
 
 	// Set up a process group so that aria is killed even if the golang
 	// code panics.
@@ -101,6 +104,30 @@ func TestDownload(t *testing.T) {
 	})
 }
 
+// Test getting/setting global options
+func TestGlobalOption(t *testing.T) {
+	testWithAriaDaemon(t, func (t* testing.T) {
+		r := require.New(t)
+		client := NewAriaClient(endpointUrl)
+
+		// Check that it's set to the initial value
+		cfg, err := client.GetGlobalOption()
+		r.NoError(err)
+		r.Equal(cfg["max-concurrent-downloads"], cfgDefaultMaxConcurrentDownloads)
+
+		// Set a new value
+		err = client.ChangeGlobalOption(
+			map[string]string{"max-concurrent-downloads": "5"})
+		r.NoError(err)
+
+		// Check again
+		cfg, err = client.GetGlobalOption()
+		r.NoError(err)
+		r.Equal(cfg["max-concurrent-downloads"], "5")
+
+	})
+}
+
 // Test queue
 func TestQueue(t *testing.T) {
 	testWithAriaDaemon(t, func(t *testing.T) {
@@ -108,7 +135,8 @@ func TestQueue(t *testing.T) {
 		client := NewAriaClient(endpointUrl)
 
 		// No download in the queue
-		stats, _ := client.GetGlobalStat()
+		stats, err := client.GetGlobalStat()
+		r.NoError(err)
 		r.Equal(stats.NumActive, "0")
 		r.Equal(stats.NumStopped, "0")
 	})
