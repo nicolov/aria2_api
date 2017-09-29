@@ -232,6 +232,35 @@ func (aria * AriaClient) Pause(gid string) (downloadId string, err error) {
 	return
 }
 
+func (aria * AriaClient) ForcePause(gid string) (downloadId string, err error) {
+	resp, err := aria.makeCall("forcePause", gid)
+	if err != nil {
+		return
+	}
+	downloadId, err = resp.GetString()
+	return
+}
+
+//
+
+func (aria * AriaClient) Remove(gid string) (downloadId string, err error) {
+	resp, err := aria.makeCall("remove", gid)
+	if err != nil {
+		return
+	}
+	downloadId, err = resp.GetString()
+	return
+}
+
+func (aria * AriaClient) ForceRemove(gid string) (downloadId string, err error) {
+	resp, err := aria.makeCall("forceRemove", gid)
+	if err != nil {
+		return
+	}
+	downloadId, err = resp.GetString()
+	return
+}
+
 //
 
 func (aria *AriaClient) ListMethods() (methods []string, err error) {

@@ -282,12 +282,84 @@ func main() {
 		},
 	}
 
+	var forcePauseCmd = &cobra.Command{
+		Use:   "forcePause [gid, ...]",
+		Short: "Force pause torrent",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args [] string) {
+			client := aria2_api.NewAriaClient(endpointUrl)
+
+			var gids [] string
+
+			for _, gid := range (args) {
+				gidReply, err := client.ForcePause(gid)
+				if err != nil || gid != gidReply {
+					log.Printf(gidReply)
+					log.Printf("FAIL %s: %v", gid, err)
+				} else {
+					gids = append(gids, gid)
+				}
+			}
+
+			fmt.Println(gids)
+		},
+	}
+
+	var removeCmd = &cobra.Command{
+		Use:   "remove [gid, ...]",
+		Short: "Remove torrent",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args [] string) {
+			client := aria2_api.NewAriaClient(endpointUrl)
+
+			var gids [] string
+
+			for _, gid := range (args) {
+				gidReply, err := client.Remove(gid)
+				if err != nil || gid != gidReply {
+					log.Printf(gidReply)
+					log.Printf("FAIL %s: %v", gid, err)
+				} else {
+					gids = append(gids, gid)
+				}
+			}
+
+			fmt.Println(gids)
+		},
+	}
+
+	var forceRemoveCmd = &cobra.Command{
+		Use:   "forceRemove [gid, ...]",
+		Short: "Force remove torrent",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args [] string) {
+			client := aria2_api.NewAriaClient(endpointUrl)
+
+			var gids [] string
+
+			for _, gid := range (args) {
+				gidReply, err := client.ForceRemove(gid)
+				if err != nil || gid != gidReply {
+					log.Printf(gidReply)
+					log.Printf("FAIL %s: %v", gid, err)
+				} else {
+					gids = append(gids, gid)
+				}
+			}
+
+			fmt.Println(gids)
+		},
+	}
+
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(peersCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(addTorrentCmd)
 	rootCmd.AddCommand(pauseCmd)
+	rootCmd.AddCommand(forcePauseCmd)
+	rootCmd.AddCommand(removeCmd)
+	rootCmd.AddCommand(forceRemoveCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
