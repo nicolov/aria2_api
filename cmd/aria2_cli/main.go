@@ -96,13 +96,12 @@ func main() {
 				}
 
 				// Percent completion
-				pctComplete := "100.0%"
-				if dStatus.TotalLength > 0 {
-					pctComplete = fmt.Sprintf("%0.1f%%",
-						100.0*float64(dStatus.CompletedLength)/float64(dStatus.TotalLength))
-				}
-				if pctComplete == "100.0%" {
+				var pctComplete string
+				if dStatus.CompletedLength == dStatus.TotalLength {
 					pctComplete = "done"
+				} else {
+					pctComplete = fmt.Sprintf("%0.1f%%",
+						99.9*float64(dStatus.CompletedLength)/float64(dStatus.TotalLength))
 				}
 
 				fmt.Printf(lineFormatStr,
