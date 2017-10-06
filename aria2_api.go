@@ -53,11 +53,11 @@ func (aria *AriaClient) makeCall(methodName string, params ...interface{}) (resp
 //
 
 type GlobalStat struct {
-	DownloadSpeed string `json:"downloadSpeed"`
-	UploadSpeed   string `json:"uploadSpeed"`
-	NumActive     string `json:"numActive"`
-	NumWaiting    string `json:"numWaiting"`
-	NumStopped    string `json:"numStopped"`
+	DownloadSpeed int `json:"downloadSpeed,string"`
+	UploadSpeed   int `json:"uploadSpeed,string"`
+	NumActive     int `json:"numActive,string"`
+	NumWaiting    int `json:"numWaiting,string"`
+	NumStopped    int `json:"numStopped,string"`
 }
 
 func (aria *AriaClient) GetGlobalStat() (stat GlobalStat, err error) {

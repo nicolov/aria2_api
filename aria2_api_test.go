@@ -51,8 +51,12 @@ func testWithAriaDaemon(t *testing.T, f func(*testing.T)) {
 
 	// HTTP server for test files
 	mux := http.NewServeMux()
-	mux.HandleFunc("/test_file", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Hello world")
+	mux.HandleFunc("/test_file/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "Hello world!")
+	})
+	mux.HandleFunc("/slow_resp/", func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(1 * time.Second)
+		fmt.Fprint(w, "(Slow) hello world!")
 	})
 
 	go func() {
@@ -78,9 +82,9 @@ func TestDownload(t *testing.T) {
 		// No download in the queue
 		stats, err := client.GetGlobalStat()
 		r.NoError(err)
-		r.Equal(stats.NumActive, "0")
-		r.Equal(stats.NumWaiting, "0")
-		r.Equal(stats.NumStopped, "0")
+		r.Equal(stats.NumActive, 0)
+		r.Equal(stats.NumWaiting, 0)
+		r.Equal(stats.NumStopped, 0)
 
 		// Add an URI
 		downloadId, err := client.AddUri(sampleUri)
@@ -90,8 +94,8 @@ func TestDownload(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 
 		stats, _ = client.GetGlobalStat()
-		r.Equal(stats.NumActive, "0")
-		r.Equal(stats.NumStopped, "1")
+		r.Equal(stats.NumActive, 0)
+		r.Equal(stats.NumStopped, 1)
 
 		downloadStatus, err := client.TellStatus(downloadId)
 		r.NoError(err)
@@ -140,8 +144,44 @@ func TestQueue(t *testing.T) {
 		// No download in the queue
 		stats, err := client.GetGlobalStat()
 		r.NoError(err)
-		r.Equal(stats.NumActive, "0")
-		r.Equal(stats.NumStopped, "0")
-		r.Equal(stats.NumWaiting, "0")
+		r.Equal(stats.NumActive, 0)
+		r.Equal(stats.NumStopped, 0)
+		r.Equal(stats.NumWaiting, 0)
+
+		// Set concurrency to one
+		err = client.ChangeGlobalOption(
+			map[string]string{"max-concurrent-downloads": "1"})
+		r.NoError(err)
+
+		// Add the first download that starts right away
+		idRunning, err := client.AddUri("http://localhost:7575/slow_resp/1")
+		r.NoError(err)
+
+		time.Sleep(20 * time.Millisecond)
+
+		// One download running
+		stats, _ = client.GetGlobalStat()
+		r.Equal(stats.NumActive, 1)
+		r.Equal(stats.NumStopped, 0)
+		r.Equal(stats.NumWaiting, 0)
+
+		// Add a second that will be queued
+		idWaiting, err := client.AddUri("http://localhost:7575/slow_resp/2")
+		r.NoError(err)
+
+		// One running, one queued
+		stats, _ = client.GetGlobalStat()
+		r.Equal(stats.NumActive, 1)
+		r.Equal(stats.NumStopped, 0)
+		r.Equal(stats.NumWaiting, 1)
+
+		// Check status
+		downloadStatus, err := client.TellStatus(idRunning)
+		r.NoError(err)
+		r.Equal("active", downloadStatus.Status)
+
+		downloadStatus, err = client.TellStatus(idWaiting)
+		r.NoError(err)
+		r.Equal("waiting", downloadStatus.Status)
 	})
 }
