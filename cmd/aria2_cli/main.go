@@ -121,28 +121,32 @@ func main() {
 		Use:   "config",
 		Short: "Get/set global configuration",
 		Args: func(cmd *cobra.Command, args [] string) error {
-			if !(len(args) == 0 || len(args) == 2) {
-				return errors.New("config requires either 0, or 2 arguments")
+			if len(args) > 2 {
+				return errors.New("config requires either 0, 1, or 2 arguments")
 			}
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args [] string) {
 			client := aria2_api.NewAriaClient(endpointUrl)
 
-			if len(args) == 0 {
+			if len(args) < 2 {
 				// Print configuration
 				config, err := client.GetGlobalOption()
 				if err != nil {
 					log.Fatal(err)
 				}
 
-				jsonConfig, err := json.MarshalIndent(config, "", "  ")
-				if err != nil {
-					log.Fatal(err)
-				}
+				if len(args) == 0 {
+					jsonConfig, err := json.MarshalIndent(config, "", "  ")
+					if err != nil {
+						log.Fatal(err)
+					}
 
-				fmt.Printf("%s\n", jsonConfig)
-			} else {
+					fmt.Printf("%s\n", jsonConfig)
+				} else {
+					fmt.Println(config[args[0]])
+				}
+			} else if len(args) == 2 {
 				// Set configuration
 				configChange := map[string]string{
 					args[0]: args[1],
@@ -153,6 +157,8 @@ func main() {
 				if err != nil {
 					log.Fatal(err)
 				}
+			} else {
+				log.Fatalln("Invalid arguments.")
 			}
 		},
 	}
@@ -180,7 +186,7 @@ func main() {
 							peer.Port,
 							humanizeBytes(peer.DownloadSpeed),
 							humanizeBytes(peer.UploadSpeed),
-							100 * float64(complPieces) / float64(totalPieces))
+							100*float64(complPieces)/float64(totalPieces))
 					}
 
 					fmt.Printf("\n")
