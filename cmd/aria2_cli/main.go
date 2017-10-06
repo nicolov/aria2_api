@@ -4,15 +4,15 @@ import (
 	"github.com/spf13/cobra"
 	"fmt"
 	"os"
-	"aria2_api"
+	"github.com/nicolov/aria2_api"
 	"log"
 	"math"
 	"encoding/json"
 	"strings"
 	"errors"
+	"io/ioutil"
+	"encoding/base64"
 )
-
-const endpointUrl = "http://127.0.0.1:6801/jsonrpc"
 
 func logn(n, b float64) float64 {
 	return math.Log(n) / math.Log(b)
@@ -43,6 +43,12 @@ func main() {
 		Use: "aria2_cli",
 	}
 
+	var endpointUrl string
+	rootCmd.PersistentFlags().StringVarP(&endpointUrl,
+		"endpoint_url", "u",
+		"http://127.0.0.1:6800/jsonrpc",
+		"Endpoint url")
+
 	var listCmd = &cobra.Command{
 		Use:   "list",
 		Short: "List torrents",
@@ -54,6 +60,32 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
+
+			// Compute summary statistics
+			var summaryStats struct {
+				completedLength uint64
+				totalLength     uint64
+				downloadSpeed   uint64
+				uploadSpeed     uint64
+			}
+
+			const lineFormatStr = "%6s  %20s  %5s  %6s  %6s  %6s  %6s\n"
+
+			for _, dStatus := range stats {
+				summaryStats.completedLength += dStatus.CompletedLength
+				summaryStats.totalLength += dStatus.TotalLength
+				summaryStats.downloadSpeed += dStatus.DownloadSpeed
+				summaryStats.uploadSpeed += dStatus.UploadSpeed
+			}
+
+			// Print summary line
+			fmt.Printf(lineFormatStr,
+				"", "total", "",
+				humanizeBytes(summaryStats.completedLength),
+				humanizeBytes(summaryStats.totalLength),
+				humanizeBytes(summaryStats.downloadSpeed),
+				humanizeBytes(summaryStats.uploadSpeed))
+			fmt.Printf("\n")
 
 			for _, dStatus := range stats {
 				// Try to determine display name
@@ -73,7 +105,7 @@ func main() {
 					pctComplete = "done"
 				}
 
-				fmt.Printf("%s  %20s  %5s  %6s  %6s  %6s  %6s\n",
+				fmt.Printf(lineFormatStr,
 					dStatus.Gid[:6],
 					displayName,
 					pctComplete,
@@ -126,7 +158,7 @@ func main() {
 	}
 
 	var peersCmd = &cobra.Command{
-		Use: "peers [gid]",
+		Use:   "peers [gid]",
 		Short: "Get peer information for a torrent",
 		Run: func(cmd *cobra.Command, args [] string) {
 			client := aria2_api.NewAriaClient(endpointUrl)
@@ -139,14 +171,16 @@ func main() {
 
 				if len(peers) > 0 {
 					fmt.Println(gid)
-					fmt.Println(strings.Repeat("-", 37))
+					fmt.Println(strings.Repeat("-", 44))
 
-					for _, peer := range(peers) {
-						fmt.Printf("%15s:%5s  %6s  %6s\n",
+					for _, peer := range (peers) {
+						complPieces, totalPieces := peer.PiecesCompletedTotal()
+						fmt.Printf("%15s:%5s  %6s  %6s  %.1f%%\n",
 							peer.Ip,
 							peer.Port,
 							humanizeBytes(peer.DownloadSpeed),
-							humanizeBytes(peer.UploadSpeed))
+							humanizeBytes(peer.UploadSpeed),
+							100 * float64(complPieces) / float64(totalPieces))
 					}
 
 					fmt.Printf("\n")
@@ -168,25 +202,146 @@ func main() {
 				gids = args
 			}
 
-			for _, gid := range gids  {
+			for _, gid := range gids {
 				printPeersForDownload(gid)
 			}
 		},
 	}
 
 	var addCmd = &cobra.Command{
-		Use: "add [url]",
+		Use:   "addU [url]",
 		Short: "Add URLs to the download queue",
-		Args: cobra.MinimumNArgs(1),
+		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args [] string) {
 			client := aria2_api.NewAriaClient(endpointUrl)
 
 			var gids []string
 
-			for _, uri := range(args) {
+			for _, uri := range (args) {
 				gid, err := client.AddUri(uri)
 				if err != nil {
 					log.Printf("%s: %v", uri, err)
+				} else {
+					gids = append(gids, gid)
+				}
+			}
+
+			fmt.Println(gids)
+		},
+	}
+
+	var addTorrentCmd = &cobra.Command{
+		Use:   "addT [torrent file path]",
+		Short: "Add .torrent file to the download queue",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args [] string) {
+			client := aria2_api.NewAriaClient(endpointUrl)
+
+			var gids []string
+
+			for _, torrentPath := range (args) {
+				// Open and base64 encode the .torrent file
+				contents, err := ioutil.ReadFile(torrentPath)
+				if err != nil {
+					log.Printf("FAIL %s: %v", torrentPath, err)
+				}
+				b64Contents := base64.StdEncoding.EncodeToString(contents)
+
+				gid, err := client.AddTorrent(b64Contents)
+				if err != nil {
+					log.Printf("FAIL %s: %v", torrentPath, err)
+				} else {
+					gids = append(gids, gid)
+				}
+			}
+
+			fmt.Println(gids)
+		},
+	}
+
+	var pauseCmd = &cobra.Command{
+		Use:   "pause [gid, ...]",
+		Short: "Pause torrent",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args [] string) {
+			client := aria2_api.NewAriaClient(endpointUrl)
+
+			var gids [] string
+
+			for _, gid := range (args) {
+				gidReply, err := client.Pause(gid)
+				if err != nil || gid != gidReply {
+					log.Printf(gidReply)
+					log.Printf("FAIL %s: %v", gid, err)
+				} else {
+					gids = append(gids, gid)
+				}
+			}
+
+			fmt.Println(gids)
+		},
+	}
+
+	var forcePauseCmd = &cobra.Command{
+		Use:   "forcePause [gid, ...]",
+		Short: "Force pause torrent",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args [] string) {
+			client := aria2_api.NewAriaClient(endpointUrl)
+
+			var gids [] string
+
+			for _, gid := range (args) {
+				gidReply, err := client.ForcePause(gid)
+				if err != nil || gid != gidReply {
+					log.Printf(gidReply)
+					log.Printf("FAIL %s: %v", gid, err)
+				} else {
+					gids = append(gids, gid)
+				}
+			}
+
+			fmt.Println(gids)
+		},
+	}
+
+	var removeCmd = &cobra.Command{
+		Use:   "remove [gid, ...]",
+		Short: "Remove torrent",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args [] string) {
+			client := aria2_api.NewAriaClient(endpointUrl)
+
+			var gids [] string
+
+			for _, gid := range (args) {
+				gidReply, err := client.Remove(gid)
+				if err != nil || gid != gidReply {
+					log.Printf(gidReply)
+					log.Printf("FAIL %s: %v", gid, err)
+				} else {
+					gids = append(gids, gid)
+				}
+			}
+
+			fmt.Println(gids)
+		},
+	}
+
+	var forceRemoveCmd = &cobra.Command{
+		Use:   "forceRemove [gid, ...]",
+		Short: "Force remove torrent",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args [] string) {
+			client := aria2_api.NewAriaClient(endpointUrl)
+
+			var gids [] string
+
+			for _, gid := range (args) {
+				gidReply, err := client.ForceRemove(gid)
+				if err != nil || gid != gidReply {
+					log.Printf(gidReply)
+					log.Printf("FAIL %s: %v", gid, err)
 				} else {
 					gids = append(gids, gid)
 				}
@@ -200,6 +355,11 @@ func main() {
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(peersCmd)
 	rootCmd.AddCommand(addCmd)
+	rootCmd.AddCommand(addTorrentCmd)
+	rootCmd.AddCommand(pauseCmd)
+	rootCmd.AddCommand(forcePauseCmd)
+	rootCmd.AddCommand(removeCmd)
+	rootCmd.AddCommand(forceRemoveCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)

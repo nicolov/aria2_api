@@ -3,6 +3,9 @@ package aria2_api
 import (
 	"fmt"
 	"github.com/ybbus/jsonrpc"
+	"encoding/json"
+	"encoding/hex"
+	"math/bits"
 )
 
 type AriaClient struct {
@@ -157,12 +160,44 @@ type BtPeer struct {
 	PeerId        string `json:"peerId"`
 	Ip            string `json:"ip"`
 	Port          string `json:"port"`
-	Bitfield      string `json:"bitfield"`
+	Bitfield      []uint8 `json:"bitfield"`
 	AmChoking     bool `json:"amChoking,string"`
 	PeerChoking   bool `json:"peerChoking,string"`
 	DownloadSpeed uint64 `json:"downloadSpeed,string"`
 	UploadSpeed   uint64 `json:"uploadSpeed,string"`
 	Seeder        bool `json:"seeder,string"`
+}
+
+// Custom marshalling for peer piece completion bitfield
+// http://choly.ca/post/go-json-marshalling/
+func (p * BtPeer) UnmarshalJSON(data []byte) error {
+	type AliasedBtPeer BtPeer
+	aux := &struct {
+		Bitfield string `json:"bitfield""`
+		*AliasedBtPeer
+	}{
+		AliasedBtPeer: (*AliasedBtPeer)(p),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	bytes, err := hex.DecodeString(aux.Bitfield)
+	if err != nil {
+		return err
+	}
+
+	p.Bitfield = bytes
+	return nil
+}
+
+// Return the number of pieces the peer has, and the total.
+func (p * BtPeer) PiecesCompletedTotal () (completed int, total int) {
+	for _, b := range(p.Bitfield) {
+		completed += bits.OnesCount8(b)
+	}
+	total = 8 * len(p.Bitfield)
+	return
 }
 
 func (aria *AriaClient) GetPeers(gid string) (peers []BtPeer, err error) {
@@ -189,6 +224,57 @@ func (aria *AriaClient) AddUri(uri string) (downloadId string, err error) {
 		return
 	}
 
+	downloadId, err = resp.GetString()
+	return
+}
+
+func (aria *AriaClient) AddTorrent(torrentPath string) (downloadId string, err error) {
+	resp, err := aria.makeCall("addTorrent", torrentPath)
+
+	if err != nil {
+		return
+	}
+
+	downloadId, err = resp.GetString()
+	return
+}
+
+//
+
+func (aria * AriaClient) Pause(gid string) (downloadId string, err error) {
+	resp, err := aria.makeCall("pause", gid)
+	if err != nil {
+		return
+	}
+	downloadId, err = resp.GetString()
+	return
+}
+
+func (aria * AriaClient) ForcePause(gid string) (downloadId string, err error) {
+	resp, err := aria.makeCall("forcePause", gid)
+	if err != nil {
+		return
+	}
+	downloadId, err = resp.GetString()
+	return
+}
+
+//
+
+func (aria * AriaClient) Remove(gid string) (downloadId string, err error) {
+	resp, err := aria.makeCall("remove", gid)
+	if err != nil {
+		return
+	}
+	downloadId, err = resp.GetString()
+	return
+}
+
+func (aria * AriaClient) ForceRemove(gid string) (downloadId string, err error) {
+	resp, err := aria.makeCall("forceRemove", gid)
+	if err != nil {
+		return
+	}
 	downloadId, err = resp.GetString()
 	return
 }
