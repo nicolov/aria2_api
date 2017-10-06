@@ -12,7 +12,8 @@ import (
 	"fmt"
 )
 
-const endpointUrl = "http://localhost:6800/jsonrpc"
+const rpcPort = 6802
+var endpointUrl = fmt.Sprintf("http://localhost:%d/jsonrpc", rpcPort)
 
 const cfgDefaultMaxConcurrentDownloads = "7"
 
@@ -21,6 +22,7 @@ func testWithAriaDaemon(t *testing.T, f func(*testing.T)) {
 	ariaCmd := exec.Command("aria2c",
 		"--enable-rpc",
 		"--rpc-listen-all",
+		fmt.Sprintf("--rpc-listen-port=%d", rpcPort),
 		"--max-concurrent-downloads=" + cfgDefaultMaxConcurrentDownloads)
 
 	// Set up a process group so that aria is killed even if the golang
