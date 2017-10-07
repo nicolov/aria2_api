@@ -101,7 +101,7 @@ func main() {
 					pctComplete = "done"
 				} else {
 					pctComplete = fmt.Sprintf("%0.1f%%",
-						99.9*float64(dStatus.CompletedLength)/float64(dStatus.TotalLength))
+						math.Min(99.9, 100 * float64(dStatus.CompletedLength)/float64(dStatus.TotalLength)))
 				}
 
 				fmt.Printf(lineFormatStr,
@@ -180,9 +180,8 @@ func main() {
 
 					for _, peer := range (peers) {
 						complPieces, totalPieces := peer.PiecesCompletedTotal()
-						fmt.Printf("%15s:%5s  %6s  %6s  %.1f%%\n",
-							peer.Ip,
-							peer.Port,
+						fmt.Printf("%21s  %6s  %6s  %.1f%%\n",
+							peer.Ip + ":" + peer.Port,
 							humanizeBytes(peer.DownloadSpeed),
 							humanizeBytes(peer.UploadSpeed),
 							100*float64(complPieces)/float64(totalPieces))
