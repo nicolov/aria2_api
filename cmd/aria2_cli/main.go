@@ -1,17 +1,17 @@
 package main
 
 import (
-	"github.com/spf13/cobra"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
 	"fmt"
-	"os"
 	"github.com/nicolov/aria2_api"
+	"github.com/spf13/cobra"
+	"io/ioutil"
 	"log"
 	"math"
-	"encoding/json"
+	"os"
 	"strings"
-	"errors"
-	"io/ioutil"
-	"encoding/base64"
 )
 
 func logn(n, b float64) float64 {
@@ -65,7 +65,7 @@ func main() {
 	var listCmd = &cobra.Command{
 		Use:   "list",
 		Short: "List torrents",
-		Run: func(cmd *cobra.Command, args [] string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			client := aria2_api.NewAriaClient(endpointUrl)
 
 			stats, err := client.TellActive()
@@ -120,7 +120,7 @@ func main() {
 				var statusLabel string
 				switch {
 				case dStatus.VerifyIntegrityPending:
-					statusLabel = "q"  // waiting in the hash check queue
+					statusLabel = "q" // waiting in the hash check queue
 				case dStatus.VerifiedLength > 0:
 					statusLabel = "k" // checking
 				default:
@@ -144,13 +144,13 @@ func main() {
 	var configCmd = &cobra.Command{
 		Use:   "config",
 		Short: "Get/set global configuration",
-		Args: func(cmd *cobra.Command, args [] string) error {
+		Args: func(cmd *cobra.Command, args []string) error {
 			if !(len(args) == 0 || len(args) == 2) {
 				return errors.New("config requires either 0, or 2 arguments")
 			}
 			return nil
 		},
-		Run: func(cmd *cobra.Command, args [] string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			client := aria2_api.NewAriaClient(endpointUrl)
 
 			if len(args) == 0 {
@@ -184,7 +184,7 @@ func main() {
 	var peersCmd = &cobra.Command{
 		Use:   "peers [gid]",
 		Short: "Get peer information for a torrent",
-		Run: func(cmd *cobra.Command, args [] string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			client := aria2_api.NewAriaClient(endpointUrl)
 
 			printPeersForDownload := func(gid string) {
@@ -197,7 +197,7 @@ func main() {
 					fmt.Println(gid)
 					fmt.Println(strings.Repeat("-", 44))
 
-					for _, peer := range (peers) {
+					for _, peer := range peers {
 						complPieces, totalPieces := peer.PiecesCompletedTotal()
 						fmt.Printf("%15s:%5s  %6s  %6s  %.1f%%\n",
 							peer.Ip,
@@ -236,12 +236,12 @@ func main() {
 		Use:   "addU [url]",
 		Short: "Add URLs to the download queue",
 		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args [] string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			client := aria2_api.NewAriaClient(endpointUrl)
 
 			var gids []string
 
-			for _, uri := range (args) {
+			for _, uri := range args {
 				gid, err := client.AddUri(uri)
 				if err != nil {
 					log.Printf("%s: %v", uri, err)
@@ -258,12 +258,12 @@ func main() {
 		Use:   "addT [torrent file path]",
 		Short: "Add .torrent file to the download queue",
 		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args [] string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			client := aria2_api.NewAriaClient(endpointUrl)
 
 			var gids []string
 
-			for _, torrentPath := range (args) {
+			for _, torrentPath := range args {
 				// Open and base64 encode the .torrent file
 				contents, err := ioutil.ReadFile(torrentPath)
 				if err != nil {
@@ -287,12 +287,12 @@ func main() {
 		Use:   "pause [gid, ...]",
 		Short: "Pause torrent",
 		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args [] string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			client := aria2_api.NewAriaClient(endpointUrl)
 
-			var gids [] string
+			var gids []string
 
-			for _, gid := range (args) {
+			for _, gid := range args {
 				gidReply, err := client.Pause(gid)
 				if err != nil || gid != gidReply {
 					log.Printf(gidReply)
@@ -310,12 +310,12 @@ func main() {
 		Use:   "forcePause [gid, ...]",
 		Short: "Force pause torrent",
 		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args [] string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			client := aria2_api.NewAriaClient(endpointUrl)
 
-			var gids [] string
+			var gids []string
 
-			for _, gid := range (args) {
+			for _, gid := range args {
 				gidReply, err := client.ForcePause(gid)
 				if err != nil || gid != gidReply {
 					log.Printf(gidReply)
@@ -333,12 +333,12 @@ func main() {
 		Use:   "remove [gid, ...]",
 		Short: "Remove torrent",
 		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args [] string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			client := aria2_api.NewAriaClient(endpointUrl)
 
-			var gids [] string
+			var gids []string
 
-			for _, gid := range (args) {
+			for _, gid := range args {
 				gidReply, err := client.Remove(gid)
 				if err != nil || gid != gidReply {
 					log.Printf(gidReply)
@@ -356,12 +356,12 @@ func main() {
 		Use:   "forceRemove [gid, ...]",
 		Short: "Force remove torrent",
 		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args [] string) {
+		Run: func(cmd *cobra.Command, args []string) {
 			client := aria2_api.NewAriaClient(endpointUrl)
 
-			var gids [] string
+			var gids []string
 
-			for _, gid := range (args) {
+			for _, gid := range args {
 				gidReply, err := client.ForceRemove(gid)
 				if err != nil || gid != gidReply {
 					log.Printf(gidReply)

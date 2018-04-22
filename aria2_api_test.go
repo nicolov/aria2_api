@@ -1,15 +1,15 @@
 package aria2_api
 
 import (
-	"testing"
-	"os"
-	"os/exec"
+	"fmt"
+	"github.com/stretchr/testify/require"
 	"log"
 	"net/http"
-	"time"
+	"os"
+	"os/exec"
 	"syscall"
-	"github.com/stretchr/testify/require"
-	"fmt"
+	"testing"
+	"time"
 )
 
 const endpointUrl = "http://localhost:6800/jsonrpc"

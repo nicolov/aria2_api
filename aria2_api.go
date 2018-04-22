@@ -1,10 +1,10 @@
 package aria2_api
 
 import (
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/ybbus/jsonrpc"
-	"encoding/json"
-	"encoding/hex"
 	"math/bits"
 )
 
@@ -31,7 +31,7 @@ var defaultStatusKeys = [...]string{
 	"infoHash",
 	"numSeeders",
 	"connections",
-	"bittorrent",}
+	"bittorrent"}
 
 //
 
@@ -185,7 +185,7 @@ func (p *BtPeer) UnmarshalJSON(data []byte) error {
 
 // Return the number of pieces the peer has, and the total.
 func (p *BtPeer) PiecesCompletedTotal() (completed int, total int) {
-	for _, b := range (p.Bitfield) {
+	for _, b := range p.Bitfield {
 		completed += bits.OnesCount8(b)
 	}
 	total = 8 * len(p.Bitfield)
