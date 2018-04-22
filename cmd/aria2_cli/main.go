@@ -38,6 +38,19 @@ func humanizeBytes(s uint64) string {
 	return humanizeHelper(s, 1000, sizes)
 }
 
+// Return the percentage, or "done"
+func toPercentage(done uint64, total uint64) string {
+	switch {
+	case total == 0:
+		return "-"
+	case done == total:
+		return "done"
+	default:
+		return fmt.Sprintf("%0.1f%%",
+			100.0*float64(done)/float64(total))
+	}
+}
+
 func main() {
 	var rootCmd = &cobra.Command{
 		Use: "aria2_cli",
@@ -69,7 +82,7 @@ func main() {
 				uploadSpeed     uint64
 			}
 
-			const lineFormatStr = "%6s  %20s  %5s  %6s  %6s  %6s  %6s\n"
+			const lineFormatStr = "%6s  %20s  %5s  %1s  %6s  %6s  %6s  %6s\n"
 
 			for _, dStatus := range stats {
 				summaryStats.completedLength += dStatus.CompletedLength
@@ -80,7 +93,7 @@ func main() {
 
 			// Print summary line
 			fmt.Printf(lineFormatStr,
-				"", "total", "",
+				"", "total", "", "",
 				humanizeBytes(summaryStats.completedLength),
 				humanizeBytes(summaryStats.totalLength),
 				humanizeBytes(summaryStats.downloadSpeed),
@@ -96,19 +109,30 @@ func main() {
 				}
 
 				// Percent completion
-				pctComplete := "100.0%"
-				if dStatus.TotalLength > 0 {
-					pctComplete = fmt.Sprintf("%0.1f%%",
-						100.0*float64(dStatus.CompletedLength)/float64(dStatus.TotalLength))
+				var pctComplete string
+				if dStatus.VerifiedLength > 0 {
+					pctComplete = toPercentage(dStatus.VerifiedLength, dStatus.TotalLength)
+				} else {
+					pctComplete = toPercentage(dStatus.CompletedLength, dStatus.TotalLength)
 				}
-				if pctComplete == "100.0%" {
-					pctComplete = "done"
+
+				// Default to the first letter of the status
+				var statusLabel string
+				switch {
+				case dStatus.VerifyIntegrityPending:
+					statusLabel = "q"  // waiting in the hash check queue
+				case dStatus.VerifiedLength > 0:
+					statusLabel = "k" // checking
+				default:
+					// Just use the first letter of the status word
+					statusLabel = dStatus.Status[:1]
 				}
 
 				fmt.Printf(lineFormatStr,
 					dStatus.Gid[:6],
 					displayName,
 					pctComplete,
+					statusLabel,
 					humanizeBytes(dStatus.CompletedLength),
 					humanizeBytes(dStatus.TotalLength),
 					humanizeBytes(dStatus.DownloadSpeed),
@@ -180,7 +204,7 @@ func main() {
 							peer.Port,
 							humanizeBytes(peer.DownloadSpeed),
 							humanizeBytes(peer.UploadSpeed),
-							100 * float64(complPieces) / float64(totalPieces))
+							100*float64(complPieces)/float64(totalPieces))
 					}
 
 					fmt.Printf("\n")

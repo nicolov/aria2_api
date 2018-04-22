@@ -87,25 +87,35 @@ type TorrentInfo struct {
 
 type TorrentStatus struct {
 	//AnnounceList []string `json:"announceList"`
-	Comment      string `json:"comment"`
-	CreationDate uint64 `json:"creationDate"`
-	Mode         string `json:"mode"`
+	Comment      string      `json:"comment"`
+	CreationDate uint64      `json:"creationDate"`
+	Mode         string      `json:"mode"`
 	Info         TorrentInfo `json:"info"`
 }
 
 type DownloadStatus struct {
-	Gid             string `json:"gid"`
-	Status          string `json:"status"`
-	TotalLength     uint64 `json:"totalLength,string"`
-	CompletedLength uint64 `json:"completedLength,string"`
-	UploadedLength  uint64 `json:"uploadedLength,string"`
-	DownloadSpeed   uint64 `json:"downloadSpeed,string"`
-	UploadSpeed     uint64 `json:"uploadSpeed,string"`
-	InfoHash        string `json:"infoHash"`
-	Dir             string `json:"dir"`
-	Files           []DownloadFile `json:"files"`
-	Bittorrent      *TorrentStatus `json:"bittorrent"`
+	Gid                    string         `json:"gid"`
+	Status                 string         `json:"status"`
+	TotalLength            uint64         `json:"totalLength,string"`
+	CompletedLength        uint64         `json:"completedLength,string"`
+	UploadLength           uint64         `json:"uploadLength,string"`
+	DownloadSpeed          uint64         `json:"downloadSpeed,string"`
+	UploadSpeed            uint64         `json:"uploadSpeed,string"`
+	InfoHash               string         `json:"infoHash"`
+	NumSeeders             uint64         `json:"numSeeders,string"`
+	Dir                    string         `json:"dir"`
+	Files                  []DownloadFile `json:"files"`
+	Bittorrent             *TorrentStatus `json:"bittorrent"`
+	VerifiedLength         uint64         `json:"verifiedLength,string"`
+	VerifyIntegrityPending bool           `json:"verifyIntegrityPending,string"`
 }
+
+const StatusActive = "active"
+const StatusWaiting = "waiting"
+const StatusPaused = "paused"
+const StatusError = "error"
+const StatusComplete = "complete"
+const StatusRemoved = "removed"
 
 func (aria *AriaClient) TellStatus(downloadId string) (status DownloadStatus, err error) {
 	resp, err := aria.makeCall("tellStatus", downloadId)
@@ -139,20 +149,20 @@ func (aria *AriaClient) TellActive(keys ...string) (list DownloadStatusList, err
 //
 
 type BtPeer struct {
-	PeerId        string `json:"peerId"`
-	Ip            string `json:"ip"`
-	Port          string `json:"port"`
+	PeerId        string  `json:"peerId"`
+	Ip            string  `json:"ip"`
+	Port          string  `json:"port"`
 	Bitfield      []uint8 `json:"bitfield"`
-	AmChoking     bool `json:"amChoking,string"`
-	PeerChoking   bool `json:"peerChoking,string"`
-	DownloadSpeed uint64 `json:"downloadSpeed,string"`
-	UploadSpeed   uint64 `json:"uploadSpeed,string"`
-	Seeder        bool `json:"seeder,string"`
+	AmChoking     bool    `json:"amChoking,string"`
+	PeerChoking   bool    `json:"peerChoking,string"`
+	DownloadSpeed uint64  `json:"downloadSpeed,string"`
+	UploadSpeed   uint64  `json:"uploadSpeed,string"`
+	Seeder        bool    `json:"seeder,string"`
 }
 
 // Custom marshalling for peer piece completion bitfield
 // http://choly.ca/post/go-json-marshalling/
-func (p * BtPeer) UnmarshalJSON(data []byte) error {
+func (p *BtPeer) UnmarshalJSON(data []byte) error {
 	type AliasedBtPeer BtPeer
 	aux := &struct {
 		Bitfield string `json:"bitfield""`
@@ -174,8 +184,8 @@ func (p * BtPeer) UnmarshalJSON(data []byte) error {
 }
 
 // Return the number of pieces the peer has, and the total.
-func (p * BtPeer) PiecesCompletedTotal () (completed int, total int) {
-	for _, b := range(p.Bitfield) {
+func (p *BtPeer) PiecesCompletedTotal() (completed int, total int) {
+	for _, b := range (p.Bitfield) {
 		completed += bits.OnesCount8(b)
 	}
 	total = 8 * len(p.Bitfield)
@@ -223,7 +233,7 @@ func (aria *AriaClient) AddTorrent(torrentPath string) (downloadId string, err e
 
 //
 
-func (aria * AriaClient) Pause(gid string) (downloadId string, err error) {
+func (aria *AriaClient) Pause(gid string) (downloadId string, err error) {
 	resp, err := aria.makeCall("pause", gid)
 	if err != nil {
 		return
@@ -232,7 +242,7 @@ func (aria * AriaClient) Pause(gid string) (downloadId string, err error) {
 	return
 }
 
-func (aria * AriaClient) ForcePause(gid string) (downloadId string, err error) {
+func (aria *AriaClient) ForcePause(gid string) (downloadId string, err error) {
 	resp, err := aria.makeCall("forcePause", gid)
 	if err != nil {
 		return
@@ -243,7 +253,7 @@ func (aria * AriaClient) ForcePause(gid string) (downloadId string, err error) {
 
 //
 
-func (aria * AriaClient) Remove(gid string) (downloadId string, err error) {
+func (aria *AriaClient) Remove(gid string) (downloadId string, err error) {
 	resp, err := aria.makeCall("remove", gid)
 	if err != nil {
 		return
@@ -252,7 +262,7 @@ func (aria * AriaClient) Remove(gid string) (downloadId string, err error) {
 	return
 }
 
-func (aria * AriaClient) ForceRemove(gid string) (downloadId string, err error) {
+func (aria *AriaClient) ForceRemove(gid string) (downloadId string, err error) {
 	resp, err := aria.makeCall("forceRemove", gid)
 	if err != nil {
 		return
