@@ -1,2 +1,3 @@
 /vendor/
 .idea
+cmd/aria2_cli/aria2_cli
