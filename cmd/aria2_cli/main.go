@@ -82,7 +82,7 @@ func main() {
 				uploadSpeed     uint64
 			}
 
-			const lineFormatStr = "%6s  %20s  %5s  %1s  %6s  %6s  %6s  %6s\n"
+			const lineFormatStr = "%4s  %20s  %5s  %1s  %6s  %6s  %6s  %6s\n"
 
 			for _, dStatus := range stats {
 				summaryStats.completedLength += dStatus.CompletedLength
@@ -92,8 +92,9 @@ func main() {
 			}
 
 			// Print summary line
+			totalCount := fmt.Sprintf("total (%d)", len(stats))
 			fmt.Printf(lineFormatStr,
-				"", "total", "", "",
+				"", totalCount, "", "",
 				humanizeBytes(summaryStats.completedLength),
 				humanizeBytes(summaryStats.totalLength),
 				humanizeBytes(summaryStats.downloadSpeed),
@@ -129,7 +130,7 @@ func main() {
 				}
 
 				fmt.Printf(lineFormatStr,
-					dStatus.Gid[:6],
+					dStatus.Gid[:4],
 					displayName,
 					pctComplete,
 					statusLabel,
